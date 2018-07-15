@@ -1,0 +1,10 @@
+{
+  "limit": {
+      "maxq": 30,
+      "minq": 2,
+      "maxa": 30,
+      "mina": 2
+  },
+  "vocab_size": 8000,
+  "permissible_unk_ratio": 0.2
+}
