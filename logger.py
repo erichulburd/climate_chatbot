@@ -3,7 +3,7 @@ __author__ = "Michael Gygli"
 # https://gist.github.com/gyglim/1f8dfb1b5c82627ae3efcfbbadb9f514
 
 import tensorflow as tf
-from StringIO import StringIO
+from io import StringIO
 import numpy as np
 
 class Logger(object):

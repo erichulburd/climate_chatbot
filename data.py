@@ -11,7 +11,7 @@ from collections import defaultdict
 import numpy as np
 from tensorflow import gfile
 import pickle
-import time
+from datetime import datetime
 import csv
 import string
 
@@ -19,20 +19,20 @@ def get_climate_change_questions_and_answers(config):
     questions = []
     answer_tokens = []
     answer_metatokens = {}
-    with open("data/climate_augmented_dataset.csv", "rb") as f:
-        augmented_rows = csv.reader(f, delimiter=',')
-        for row in augmented_rows:
-            safe_qs = [q.replace('\n', ' ').replace('\r', '') for q in row[0:9]]
-            safe_as = row[9].replace('\n', ' ').replace('\r', '')
+    f = open('data/climate_augmented_dataset.csv', encoding='utf-8', errors='ignore')
+    augmented_rows = csv.reader(f, delimiter=',')
+    for row in augmented_rows:
+        safe_qs = [q.replace('\n', ' ').replace('\r', '') for q in row[0:9]]
+        safe_as = row[9].replace('\n', ' ').replace('\r', '')
 
-            # tokenize output as a random string.
-            output_length = random.randrange(15, 20, 1)
-            output_metatoken = ''.join(random.SystemRandom().choice(string.ascii_uppercase) for _ in range(output_length))
-            answer_metatokens[output_metatoken] = safe_as
+        # tokenize output as a random string.
+        output_length = random.randrange(15, 20, 1)
+        output_metatoken = ''.join(random.SystemRandom().choice(string.ascii_uppercase) for _ in range(output_length))
+        answer_metatokens[output_metatoken] = safe_as
 
-            for question in safe_qs:
-                questions.append(question)
-                answer_tokens.append(output_metatoken)
+        for question in safe_qs:
+            questions.append(question)
+            answer_tokens.append(output_metatoken)
     # This also truncates climate questions that are beyond config limit.
     questions = [q[:config['limit']['maxq']] for q in process_raw_lines(questions)]
     return questions, answer_tokens, answer_metatokens
@@ -42,27 +42,25 @@ def get_climate_change_questions_and_answers(config):
     2. Create a dictionary with ( key = line_id, value = text )
 '''
 def get_id2line():
-    with open("data/movie_lines.txt", "rb") as f:
-        lines = f.read().split('\n')
-        id2line = {}
-        for line in lines:
-            _line = line.split(' +++$+++ ')
-            if len(_line) == 5:
-                id2line[_line[0]] = _line[4]
-        return id2line
+    lines = open('data/movie_lines.txt', encoding='utf-8', errors='ignore').read().split('\n')
+    id2line = {}
+    for line in lines:
+        _line = line.split(' +++$+++ ')
+        if len(_line) == 5:
+            id2line[_line[0]] = _line[4]
+    return id2line
 
 '''
     1. Read from 'movie_conversations.txt'
     2. Create a list of [list of line_id's]
 '''
 def get_conversations():
-    with open('data/movie_conversations.txt', "rb") as f:
-        conv_lines = f.read().split('\n')
-        convs = [ ]
-        for line in conv_lines[:-1]:
-            _line = line.split(' +++$+++ ')[-1][1:-1].replace("'","").replace(" ","")
-            convs.append(_line.split(','))
-        return convs
+    conv_lines = open('data/movie_conversations.txt', encoding='utf-8', errors='ignore').read().split('\n')
+    convs = [ ]
+    for line in conv_lines[:-1]:
+        _line = line.split(' +++$+++ ')[-1][1:-1].replace("'","").replace(" ","")
+        convs.append(_line.split(','))
+    return convs
 
 '''
     Get lists of all conversations as Questions and Answers
@@ -76,7 +74,7 @@ def gather_dataset(convs, id2line):
         if len(conv) % 2 != 0:
             conv = conv[:-1]
         for i in range(len(conv)):
-            if i%2 == 0:
+            if i % 2 == 0:
                 questions.append(id2line[conv[i]])
             else:
                 answers.append(id2line[conv[i]])
@@ -277,7 +275,7 @@ def process_data(config, directory):
 
     print('\n:: Sample from segmented list of words')
     for q,a in zip(qtokenized[141:145], atokenized[141:145]):
-        print('q : [{0}]; a : [{1}]'.format(q,a))
+        print('q : {0}; a : {1}'.format(q,a))
 
     climate_qtokenized, climate_atokenized, answer_metatokens = get_climate_change_questions_and_answers(config)
     qtokenized += climate_qtokenized
@@ -409,7 +407,7 @@ def get_config(config_file="data_config.json"):
     return json.load(open(config_file))
 
 if __name__ == '__main__':
-    directory = 'working_dir/data/%i' % int(time.time())
+    directory = 'working_dir/data/%s' % datetime.now().strftime('%Y_%m_%d_%H.%M')
     process_data(get_config(), directory)
 
 def load_data(timestamp):

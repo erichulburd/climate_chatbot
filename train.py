@@ -1,26 +1,50 @@
 #! /usr/bin/python
-# -*- coding: utf8 -*-
 """Sequence to Sequence Learning for Twitter/Cornell Chatbot.
 
 References
 ----------
 http://suriyadeepan.github.io/2016-12-31-practical-seq2seq/
+
+
+TO run distributed: https://github.com/GoogleCloudPlatform/cloudml-dist-mnist-example
+https://cloud.google.com/solutions/running-distributed-tensorflow-on-compute-engine
 """
 import tensorflow as tf
 import tensorlayer as tl
 from tensorlayer.layers import *
 import numpy as np
-import time
+from datetime import datetime
+from logger import Logger
 import sys
 import json
+import time
+import os
 import data
 
-hypes = json.load(open('hypes.json'))
-timestamp = hypes['dataset_timestamp']
+timestamp = None
+hypes = None
+run_directory = None
+checkpoint_filename = None
+try:
+    # If a timestamp is provided, look it up in working_dir/runs and continue to train that model
+    # with the original hypes.
+    timestamp = sys.argv[1]
+    run_directory = 'working_dir/runs/%s' % timestamp
+    checkpoint_filename = os.path.join(run_directory, "seq2seq.ckpt")
+    hypes = json.load(open('%s/hypes.json' % run_directory))
+except IndexError:
+    # Otherwise, use hypes.json in root direct and begin training new model.
+    timestamp = datetime.now().strftime('%Y_%m_%d_%H.%M')
+    run_directory = 'working_dir/runs/%s' % timestamp
+    hypes = json.load(open('hypes.json'))
+    os.mkdir(run_directory)
+    f = open("%s/hypes.json" % run_directory, 'w')
+    json.dump(hypes, f, indent=2, sort_keys=True)
 
-metadata, idx_q, idx_a = data.load_data(timestamp)
+dataset_timestamp = hypes['dataset_timestamp']
+metadata, idx_q, idx_a = data.load_data(dataset_timestamp)
 (trainX, trainY), (testX, testY), (validX, validY) = data.split_dataset(idx_q, idx_a)
-
+print('...data loaded')
 trainX = trainX.tolist()
 trainY = trainY.tolist()
 testX = testX.tolist()
@@ -32,8 +56,8 @@ trainX = tl.prepro.remove_pad_sequences(trainX)
 trainY = tl.prepro.remove_pad_sequences(trainY)
 testX = tl.prepro.remove_pad_sequences(testX)
 testY = tl.prepro.remove_pad_sequences(testY)
-validX = tl.prepro.remove_pad_sequences(validX)
-validY = tl.prepro.remove_pad_sequences(validY)
+# validX = tl.prepro.remove_pad_sequences(validX)
+# validY = tl.prepro.remove_pad_sequences(validY)
 
 ###============= parameters
 xseq_len = len(trainX)#.shape[-1]
@@ -131,7 +155,7 @@ loss = tl.cost.cross_entropy_seq_with_mask(logits=net_out.outputs, target_seqs=t
 
 net_out.print_params(False)
 
-lr = config['lr']
+lr = hypes['lr']
 train_op = tf.train.AdamOptimizer(learning_rate=lr).minimize(loss)
 # Truncated Backpropagation for training (option)
 # max_grad_norm = 30
@@ -144,9 +168,19 @@ sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True, log_device_pl
 tl.layers.initialize_global_variables(sess)
 tl.files.load_and_assign_npz(sess=sess, name='n.npz', network=net)
 
+logger = Logger(run_directory)
+saver = tf.train.Saver(var_list=tf.global_variables(), filename=checkpoint_filename)
+
+def early_stop(losses, max_increases=5):
+    return reversed(losses).index(min(losses)) >= max_increases
+stopped = False
+
 ###============= train
 n_epoch = 50
+valid_losses = []
 for epoch in range(n_epoch):
+    if stopped:
+        break
     epoch_time = time.time()
     ## shuffle training data
     from sklearn.utils import shuffle
@@ -180,13 +214,19 @@ for epoch in range(n_epoch):
                         target_seqs: _target_seqs,
                         target_mask: _target_mask})
 
-        if n_iter % 200 == 0:
-            print("Epoch[%d/%d] step:[%d/%d] loss:%f took:%.5fs" % (epoch, n_epoch, n_iter, n_step, err, time.time() - step_time))
+        global_step = epoch * n_step + n_iter
 
         total_err += err; n_iter += 1
 
+        if n_iter % 200 == 0:
+            logger.log_scalar('err', err, global_step)
+            logger.log_scalar('perplexity', np.exp(err), global_step)
+            print("Epoch[%d/%d] step:[%d/%d] loss:%f took:%.5fs" % (epoch, n_epoch, n_iter, n_step, err, time.time() - step_time))
+
         ###============= inference
         if n_iter % 1000 == 0:
+            saver.save(sess, checkpoint_filename, global_step=global_step)
+
             seeds = [
                         "How are you?",
                         "What did you eat for breakfast this morning?"
@@ -219,6 +259,23 @@ for epoch in range(n_epoch):
                             break
                         sentence = sentence + [w]
                     print(" >", ' '.join(sentence))
+
+            _target_valid_seqs = tl.prepro.sequences_add_end_id(validY, end_id=end_id)
+            _target_valid_seqs = tl.prepro.pad_sequences(_target_valid_seqs)
+            _decode_valid_seqs = tl.prepro.sequences_add_start_id(validY, start_id=start_id, remove_last=False)
+            _decode_valid_seqs = tl.prepro.pad_sequences(_decode_valid_seqs)
+            _target_valid_mask = tl.prepro.sequences_get_mask(_target_valid_seqs)
+            valid_loss = sess.run(loss, {
+                encode_seqs: validX,
+                decode_seqs: _decode_valid_seqs,
+                target_seqs: _target_valid_seqs,
+                target_mask: _target_valid_mask
+            })
+            valid_losses.append(valid_loss)
+            if early_stop(valid_losses):
+                stopped = True
+                break
+
 
     print("Epoch[%d/%d] averaged loss:%f took:%.5fs" % (epoch, n_epoch, total_err/n_iter, time.time()-epoch_time))
 
