@@ -3,23 +3,27 @@ EN_BLACKLIST = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~\''
 UNK = 'unk'
 
 import random
+import argparse
 
+import tensorlayer as tl
+import tensorflow as tf
 import nltk
 import itertools
 from collections import defaultdict
 
 import numpy as np
 from tensorflow import gfile
+from tensorflow.contrib.learn.python.learn.estimators.model_fn import ModeKeys
 import pickle
 from datetime import datetime
 import csv
 import string
 
-def get_climate_change_questions_and_answers(config):
+def get_climate_change_questions_and_answers(config, base_path):
     questions = []
     answer_tokens = []
     answer_metatokens = {}
-    f = open('data/climate_augmented_dataset.csv', encoding='utf-8', errors='ignore')
+    f = open('%s/data/climate_augmented_dataset.csv' % base_path, encoding='utf-8', errors='ignore')
     augmented_rows = csv.reader(f, delimiter=',')
     for row in augmented_rows:
         safe_qs = [q.replace('\n', ' ').replace('\r', '') for q in row[0:9]]
@@ -41,8 +45,8 @@ def get_climate_change_questions_and_answers(config):
     1. Read from 'movie-lines.txt'
     2. Create a dictionary with ( key = line_id, value = text )
 '''
-def get_id2line():
-    lines = open('data/movie_lines.txt', encoding='utf-8', errors='ignore').read().split('\n')
+def get_id2line(base_path):
+    lines = open('%s/data/movie_lines.txt' % base_path, encoding='utf-8', errors='ignore').read().split('\n')
     id2line = {}
     for line in lines:
         _line = line.split(' +++$+++ ')
@@ -54,8 +58,8 @@ def get_id2line():
     1. Read from 'movie_conversations.txt'
     2. Create a list of [list of line_id's]
 '''
-def get_conversations():
-    conv_lines = open('data/movie_conversations.txt', encoding='utf-8', errors='ignore').read().split('\n')
+def get_conversations(base_path):
+    conv_lines = open('%s/data/movie_conversations.txt' % base_path, encoding='utf-8', errors='ignore').read().split('\n')
     convs = [ ]
     for line in conv_lines[:-1]:
         _line = line.split(' +++$+++ ')[-1][1:-1].replace("'","").replace(" ","")
@@ -81,41 +85,6 @@ def gather_dataset(convs, id2line):
 
     return questions, answers
 
-
-'''
-    We need 4 files
-    1. train.enc : Encoder input for training
-    2. train.dec : Decoder input for training
-    3. test.enc  : Encoder input for testing
-    4. test.dec  : Decoder input for testing
-'''
-def prepare_seq2seq_files(questions, answers, path, TESTSET_SIZE = 30000):
-
-    # open files
-    train_enc = open(path + 'train.enc','w')
-    train_dec = open(path + 'train.dec','w')
-    test_enc  = open(path + 'test.enc', 'w')
-    test_dec  = open(path + 'test.dec', 'w')
-
-    # choose 30,000 (TESTSET_SIZE) items to put into testset
-    test_ids = random.sample([i for i in range(len(questions))],TESTSET_SIZE)
-
-    for i in range(len(questions)):
-        if i in test_ids:
-            test_enc.write(questions[i]+'\n')
-            test_dec.write(answers[i]+ '\n' )
-        else:
-            train_enc.write(questions[i]+'\n')
-            train_dec.write(answers[i]+ '\n' )
-        if i%10000 == 0:
-            print('\n>> written {} lines'.format(i))
-
-    # close files
-    train_enc.close()
-    train_dec.close()
-    test_enc.close()
-    test_dec.close()
-
 '''
  filter too long and too short sequences
     return tuple( filtered_ta, filtered_en )
@@ -138,7 +107,7 @@ def filter_data(qseq, aseq, config):
     # print the fraction of the original data, filtered
     filt_data_len = len(filtered_q)
     filtered = int((raw_data_len - filt_data_len)*100/raw_data_len)
-    print(str(filtered) + '% filtered from original data')
+    print(str(filtered) + '%% filtered from original data')
 
     return filtered_q, filtered_a
 
@@ -257,10 +226,10 @@ def line_to_token(line):
 def filter_line(line, whitelist):
     return ''.join([ ch for ch in line if ch in whitelist ])
 
-def process_data(config, directory):
-    id2line = get_id2line()
+def process_data(config, base_path, data_directory):
+    id2line = get_id2line(base_path)
     print('>> gathered id2line dictionary.\n')
-    convs = get_conversations()
+    convs = get_conversations(base_path)
     print(convs[121:125])
     print('>> gathered conversations.\n')
     questions, answers = gather_dataset(convs,id2line)
@@ -277,7 +246,7 @@ def process_data(config, directory):
     for q,a in zip(qtokenized[141:145], atokenized[141:145]):
         print('q : {0}; a : {1}'.format(q,a))
 
-    climate_qtokenized, climate_atokenized, answer_metatokens = get_climate_change_questions_and_answers(config)
+    climate_qtokenized, climate_atokenized, answer_metatokens = get_climate_change_questions_and_answers(config, base_path)
     qtokenized += climate_qtokenized
     atokenized += climate_atokenized
 
@@ -293,12 +262,12 @@ def process_data(config, directory):
     print('\n >> Vectorizing inputs')
     idx_q, idx_a = vectorize_question_and_answers(qtokenized, atokenized, w2idx, config)
 
-    os.mkdir(directory)
+    os.mkdir(data_directory)
 
     print('\n >> Save numpy arrays to disk')
     # save them
-    np.save('%s/idx_q.npy' % directory, idx_q)
-    np.save('%s/idx_a.npy' % directory, idx_a)
+    np.save('%s/idx_q.npy' % data_directory, idx_q)
+    np.save('%s/idx_a.npy' % data_directory, idx_a)
 
     # let us now save the necessary dictionaries
     metadata = {
@@ -309,13 +278,17 @@ def process_data(config, directory):
     }
 
     # write to disk : data control dictionaries
-    file_path = '%s/metadata.pkl' % directory
+    file_path = '%s/metadata.pkl' % data_directory
     with open(file_path, 'wb') as f:
         pickle.dump(metadata, f)
 
     # save answer metatokens
-    with open("%s/climate_augmented_metatokens.json" % directory, "w") as f:
+    with open("%s/climate_augmented_metatokens.json" % data_directory, "w") as f:
       json.dump(answer_metatokens, f, indent=2, sort_keys=True)
+
+    # save answer metatokens
+    with open("%s/config.json" % data_directory, "w") as f:
+      json.dump(config, f, indent=2, sort_keys=True)
 
     # count of unknowns
     unk_count = (idx_q == 1).sum() + (idx_a == 1).sum()
@@ -340,7 +313,8 @@ import os
     return tuple( (trainX, trainY), (testX,testY), (validX,validY) )
 
 '''
-def split_dataset(x, y, ratio = [0.7, 0.15, 0.15] ):
+split_ratios = [0.7, 0.15, 0.15]
+def split_dataset(x, y, ratio = split_ratios):
     # number of examples
     data_len = len(x)
     lens = [ int(data_len*item) for item in ratio ]
@@ -350,31 +324,6 @@ def split_dataset(x, y, ratio = [0.7, 0.15, 0.15] ):
     validX, validY = x[-lens[-1]:], y[-lens[-1]:]
 
     return (trainX,trainY), (testX,testY), (validX,validY)
-
-
-'''
- generate batches from dataset
-    yield (x_gen, y_gen)
-
-    TODO : fix needed
-
-'''
-def batch_gen(x, y, batch_size):
-    # infinite while
-    while True:
-        for i in range(0, len(x), batch_size):
-            if (i+1)*batch_size < len(x):
-                yield x[i : (i+1)*batch_size ].T, y[i : (i+1)*batch_size ].T
-
-'''
- generate batches, by random sampling a bunch of items
-    yield (x_gen, y_gen)
-
-'''
-def rand_batch_gen(x, y, batch_size):
-    while True:
-        sample_idx = sample(list(np.arange(len(x))), batch_size)
-        yield x[sample_idx].T, y[sample_idx].T
 
 #'''
 # convert indices of alphabets into a string (word)
@@ -402,20 +351,117 @@ def decode(sequence, lookup, separator=''): # 0 used for padding, is ignored
     return separator.join([ lookup[element] for element in sequence if element ])
 
 
-
-def get_config(config_file="data_config.json"):
-    return json.load(open(config_file))
-
 if __name__ == '__main__':
-    directory = 'working_dir/data/%s' % datetime.now().strftime('%Y_%m_%d_%H.%M')
-    process_data(get_config(), directory)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--base_path',
+        help='Base path',
+        default=os.getcwd()
+    )
+    args = parser.parse_args()
+    arguments = args.__dict__
 
-def load_data(timestamp):
+    base_path = arguments['base_path']
+    data_directory = datetime.now().strftime('%Y_%m_%d_%H.%M')
+    data_config = json.load(open('%s/data_config.json'))
+    process_data(data_config, base_path, data_directory)
+    print('Data written to: %s' % data_directory)
+
+def length(data_directory, mode):
+    idx_q = np.load('%s/idx_q.npy' % data_directory)
+    if mode == ModeKeys.TRAIN:
+        return len(idx_q) * split_ratios[0]
+    elif mode == ModeKeys.EVAL:
+        return len(idx_q) * split_ratios[2]
+    elif mode == ModeKeys.INFER:
+        return len(idx_q) * split_ratios[1]
+
+def load_data(data_directory):
     # read data control dictionaries
-    file_path = "working_dir/data/%s/metadata.pkl" % timestamp
+    file_path = "%s/metadata.pkl" % data_directory
     with open(file_path, 'rb') as f:
         metadata = pickle.load(f)
     # read numpy arrays
-    idx_q = np.load('working_dir/data/%s/idx_q.npy' % timestamp)
-    idx_a = np.load('working_dir/data/%s/idx_a.npy' % timestamp)
-    return metadata, idx_q, idx_a
+    idx_q = np.load('%s/idx_q.npy' % data_directory)
+    idx_a = np.load('%s/idx_a.npy' % data_directory)
+
+    (trainX, trainY), (testX, testY), (validX, validY) = split_dataset(idx_q, idx_a)
+    trainX = trainX.tolist()
+    trainY = trainY.tolist()
+    testX = testX.tolist()
+    testY = testY.tolist()
+    validX = validX.tolist()
+    validY = validY.tolist()
+
+    trainX = tl.prepro.remove_pad_sequences(trainX)
+    trainY = tl.prepro.remove_pad_sequences(trainY)
+    validX = tl.prepro.remove_pad_sequences(validX)
+    validY = tl.prepro.remove_pad_sequences(validY)
+    testX = tl.prepro.remove_pad_sequences(testX)
+    testY = tl.prepro.remove_pad_sequences(testY)
+
+    return metadata, trainX, trainY, testX, testY, validX, validY
+
+def batch_data(metadata, X, Y, hypes, mode):
+    batch_size = hypes['batch_size']
+    if mode == ModeKeys.EVAL:
+        batch_size = hypes['eval_batch_size']
+
+    xseq_len = len(X)
+    yseq_len = len(Y)
+    assert xseq_len == yseq_len
+    # n_step = int(xseq_len/batch_size)
+    xvocab_size = len(metadata['idx2w']) # 8002 (0~8001)
+    # emb_dim = hypes['emb_dim']
+
+    w2idx = metadata['w2idx']   # dict  word 2 index
+    idx2w = metadata['idx2w']   # list index 2 word
+
+    # unk_id = w2idx['unk']   # 1
+    # pad_id = w2idx['_']     # 0
+
+    start_id = xvocab_size  # 8002
+    end_id = xvocab_size+1  # 8003
+
+    w2idx.update({'start_id': start_id})
+    w2idx.update({'end_id': end_id})
+    idx2w = idx2w + ['start_id', 'end_id']
+
+    xvocab_size = yvocab_size = xvocab_size + 2
+
+    features = {
+        'encode_seqs': [],
+        'decode_seqs': []
+    }
+    labels = {
+        'target_seqs': [],
+        'target_mask': []
+    }
+
+    for batchX, batchY in tl.iterate.minibatches(inputs=X, targets=Y, batch_size=batch_size, shuffle=True):
+        features['encode_seqs'].append(
+            tl.prepro.pad_sequences(batchX)
+        )
+        target_seqs = tl.prepro.pad_sequences(
+            tl.prepro.sequences_add_end_id(batchY, end_id=end_id)
+        )
+        features['decode_seqs'].append(target_seqs)
+
+        labels['target_seqs'].append(
+            tl.prepro.pad_sequences(
+                tl.prepro.sequences_add_start_id(batchY, start_id=start_id, remove_last=False)
+            )
+        )
+        labels['target_mask'].append(
+            tl.prepro.sequences_get_mask(target_seqs)
+        )
+
+    features = {
+        'encode_seqs': tf.stack(features['encode_seqs']),
+        'decode_seqs': tf.stack(features['decode_seqs'])
+    }
+    labels = {
+        'target_seqs': tf.stack(features['target_seqs']),
+        'target_mask': tf.stack(features['target_mask'])
+    }
+    return features, labels

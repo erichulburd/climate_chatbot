@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# w207-final-project-211617
+JOB_NAME="job_$(date +%Y%m%d_%H%M%S)"
+python ./trainer/task.py --working_directory ${JOB_NAME}

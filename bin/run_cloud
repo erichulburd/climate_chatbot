@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# w207-final-project-211617
+PROJECT_NAME=$1
+BUCKET="${PROJECT_NAME}-ml"
+JOB_NAME="job_$(date +%Y%m%d_%H%M%S)"
+gcloud ml-engine jobs submit training ${JOB_NAME} \
+    --package-path trainer \
+    --module-name trainer.task \
+    --staging-bucket gs://${BUCKET} \
+    --job-dir gs://${BUCKET}/working_dir/${JOB_NAME} \
+    --region us-central1 \
+    --scale-tier standard-1 \
+    --config gcloud_config.yaml \
+    --python-version 3.6 \
+    -- \
+    --base_path gs://${BUCKET} \
+    --working_directory ${JOB_NAME}
