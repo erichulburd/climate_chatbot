@@ -7,11 +7,10 @@ gcloud ml-engine jobs submit training ${JOB_NAME} \
     --package-path trainer \
     --module-name trainer.task \
     --staging-bucket gs://${BUCKET} \
-    --job-dir gs://${BUCKET}/working_dir/${JOB_NAME} \
+    --job-dir gs://${BUCKET}/working_dir/runs/${JOB_NAME} \
     --region us-central1 \
-    --scale-tier standard-1 \
     --config gcloud_config.yaml \
-    --python-version 3.6 \
+    --python-version 3.5 \
     -- \
     --base_path gs://${BUCKET} \
     --working_directory ${JOB_NAME}
