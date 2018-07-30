@@ -402,11 +402,7 @@ def load_data(data_directory):
 
     return metadata, trainX, trainY, testX, testY, validX, validY
 
-def batch_data(metadata, X, Y, hypes, mode):
-    batch_size = hypes['batch_size']
-    if mode == ModeKeys.EVAL:
-        batch_size = hypes['eval_batch_size']
-
+def preprocess_data(metadata, X, Y, hypes, mode):
     xseq_len = len(X)
     yseq_len = len(Y)
     assert xseq_len == yseq_len
@@ -427,41 +423,26 @@ def batch_data(metadata, X, Y, hypes, mode):
     w2idx.update({'end_id': end_id})
     idx2w = idx2w + ['start_id', 'end_id']
 
-    xvocab_size = yvocab_size = xvocab_size + 2
+    xvocab_size = end_id + 1
 
     features = {
-        'encode_seqs': [],
-        'decode_seqs': []
-    }
-    labels = {
-        'target_seqs': [],
-        'target_mask': []
-    }
-
-    for batchX, batchY in tl.iterate.minibatches(inputs=X, targets=Y, batch_size=batch_size, shuffle=True):
-        features['encode_seqs'].append(
-            tl.prepro.pad_sequences(batchX)
-        )
-        target_seqs = tl.prepro.pad_sequences(
-            tl.prepro.sequences_add_end_id(batchY, end_id=end_id)
-        )
-        features['decode_seqs'].append(target_seqs)
-
-        labels['target_seqs'].append(
+        'encode_seqs': tf.stack(
+            tl.prepro.pad_sequences(X)
+        ),
+        'decode_seqs': tf.stack(
             tl.prepro.pad_sequences(
-                tl.prepro.sequences_add_start_id(batchY, start_id=start_id, remove_last=False)
+                tl.prepro.sequences_add_start_id(Y, start_id=start_id, remove_last=False)
             )
         )
-        labels['target_mask'].append(
+    }
+    target_seqs = tl.prepro.pad_sequences(
+        tl.prepro.sequences_add_end_id(Y, end_id=end_id)
+    )
+    labels = {
+        'target_seqs': tf.stack(target_seqs),
+        'target_mask': tf.stack(
             tl.prepro.sequences_get_mask(target_seqs)
         )
+    }
 
-    features = {
-        'encode_seqs': tf.stack(features['encode_seqs']),
-        'decode_seqs': tf.stack(features['decode_seqs'])
-    }
-    labels = {
-        'target_seqs': tf.stack(features['target_seqs']),
-        'target_mask': tf.stack(features['target_mask'])
-    }
     return features, labels

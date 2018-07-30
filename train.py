@@ -23,9 +23,10 @@ from tensorflow.contrib.learn.python.learn.estimators.model_fn import ModeKeys
 from tensorflow.contrib.learn.python.learn import learn_runner
 from tensorflow.contrib.learn.python.learn.utils import (
     saved_model_export_utils)
+# from tensorflow.estimator import stop_if_no_decrease_hook
 
 def early_stop_hook(estimator, hypes):
-  return tf.contrib.estimator.stop_if_no_decrease_hook(
+  return tf.estimator.stop_if_no_decrease_hook(
     estimator,
     metric_name=hypes['early_stopping']['metric_name'],
     max_steps_without_decrease=hypes['early_stopping']['max_steps_without_decrease'],
@@ -47,7 +48,7 @@ if __name__ == '__main__':
       default=os.getcwd()
   )
   parser.add_argument(
-      '--output_dir',
+      '--working_directory',
       help='Path to write checkpoints and export models',
       required=True
   )
@@ -64,6 +65,7 @@ if __name__ == '__main__':
   data_directory = '%s/working_dir/data/%s' % (base_path, hypes['data_directory'])
   hypes['data'] = json.load(open('%s/config.json' % data_directory))
   output_dir = '%s/working_dir/runs/%s' % (base_path, arguments['working_directory'])
+  os.mkdir(output_dir)
 
   # save answer metatokens
   with open("%s/hypes.json" % output_dir, "w") as f:
@@ -82,7 +84,7 @@ if __name__ == '__main__':
       input_fn=train_input_fn,
       max_steps=train_steps,
       hooks = [
-          early_stop_hook(estimator, hypes)
+          # early_stop_hook(estimator, hypes)
       ]
   )
 
@@ -92,6 +94,7 @@ if __name__ == '__main__':
   eval_spec = tf.estimator.EvalSpec(
       input_fn=eval_input_fn,
       steps=hypes['eval_steps'],
+      throttle_secs=hypes['eval_throttle_seconds']
       # exporters=[
       #   serving_exporter
       # ]
