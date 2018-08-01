@@ -5,7 +5,7 @@ BUCKET="${PROJECT_NAME}-ml"
 JOB_NAME="job_$(date +%Y%m%d_%H%M%S)"
 gcloud ml-engine jobs submit training ${JOB_NAME} \
     --package-path trainer \
-    --module-name train \
+    --module-name trainer.train \
     --staging-bucket gs://${BUCKET} \
     --job-dir gs://${BUCKET}/working_dir/runs/${JOB_NAME} \
     --region us-central1 \

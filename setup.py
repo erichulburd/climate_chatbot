@@ -2,8 +2,10 @@ from setuptools import find_packages
 from setuptools import setup
 
 REQUIRED_PACKAGES = [
-  'tensorlayer',
-  'nltk'
+  'tensorlayer==1.9',
+  'tensorflow==1.9',
+  'nltk',
+  'numpy'
 ]
 
 setup(
