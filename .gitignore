@@ -4,3 +4,5 @@ working_dir/
 .DS_Store
 venv/
 .vscode/
+tmp/
+.env

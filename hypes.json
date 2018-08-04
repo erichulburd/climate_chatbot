@@ -1,5 +1,5 @@
 {
-  "data_directory": "2018_07_15_15.53",
+  "data_directory": "2018_08_04_11.33",
   "early_stopping": {
     "max_steps_without_decrease": 1000,
     "metric_name": "perplexity",

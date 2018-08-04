@@ -11,20 +11,21 @@ import nltk
 import itertools
 from collections import defaultdict
 
+from trainer import storage
+from io import StringIO
 import numpy as np
 from tensorflow import gfile
 from tensorflow.contrib.learn.python.learn.estimators.model_fn import ModeKeys
 import pickle
-from datetime import datetime
 import csv
 import string
 
-def get_climate_change_questions_and_answers(config, base_path):
+def get_climate_change_questions_and_answers(config):
     questions = []
     answer_tokens = []
     answer_metatokens = {}
-    f = open('%s/data/climate_augmented_dataset.csv' % base_path, encoding='utf-8', errors='ignore')
-    augmented_rows = csv.reader(f, delimiter=',')
+    csvs = storage.get('data/climate_augmented_dataset.csv').decode('utf-8')
+    augmented_rows = csv.reader(StringIO(csvs), delimiter=',')
     for row in augmented_rows:
         safe_qs = [q.replace('\n', ' ').replace('\r', '') for q in row[0:9]]
         safe_as = row[9].replace('\n', ' ').replace('\r', '')
@@ -45,21 +46,23 @@ def get_climate_change_questions_and_answers(config, base_path):
     1. Read from 'movie-lines.txt'
     2. Create a dictionary with ( key = line_id, value = text )
 '''
-def get_id2line(base_path):
-    lines = open('%s/data/movie_lines.txt' % base_path, encoding='utf-8', errors='ignore').read().split('\n')
+def get_id2line():
+    lines = storage.get('data/movie_lines.txt').decode('utf-8', 'ignore').split('\n')
     id2line = {}
     for line in lines:
         _line = line.split(' +++$+++ ')
         if len(_line) == 5:
-            id2line[_line[0]] = _line[4]
+            i = _line[0]
+            l = _line[4]
+            id2line[i] = l
     return id2line
 
 '''
     1. Read from 'movie_conversations.txt'
     2. Create a list of [list of line_id's]
 '''
-def get_conversations(base_path):
-    conv_lines = open('%s/data/movie_conversations.txt' % base_path, encoding='utf-8', errors='ignore').read().split('\n')
+def get_conversations():
+    conv_lines = storage.get('data/movie_conversations.txt').decode('utf-8', 'ignore').split('\n')
     convs = [ ]
     for line in conv_lines[:-1]:
         _line = line.split(' +++$+++ ')[-1][1:-1].replace("'","").replace(" ","")
@@ -226,10 +229,10 @@ def line_to_token(line):
 def filter_line(line, whitelist):
     return ''.join([ ch for ch in line if ch in whitelist ])
 
-def process_data(config, base_path, data_directory):
-    id2line = get_id2line(base_path)
+def process_data(config, data_directory):
+    id2line = get_id2line()
     print('>> gathered id2line dictionary.\n')
-    convs = get_conversations(base_path)
+    convs = get_conversations()
     print(convs[121:125])
     print('>> gathered conversations.\n')
     questions, answers = gather_dataset(convs,id2line)
@@ -246,7 +249,7 @@ def process_data(config, base_path, data_directory):
     for q,a in zip(qtokenized[141:145], atokenized[141:145]):
         print('q : {0}; a : {1}'.format(q,a))
 
-    climate_qtokenized, climate_atokenized, answer_metatokens = get_climate_change_questions_and_answers(config, base_path)
+    climate_qtokenized, climate_atokenized, answer_metatokens = get_climate_change_questions_and_answers(config)
     qtokenized += climate_qtokenized
     atokenized += climate_atokenized
 
@@ -262,12 +265,10 @@ def process_data(config, base_path, data_directory):
     print('\n >> Vectorizing inputs')
     idx_q, idx_a = vectorize_question_and_answers(qtokenized, atokenized, w2idx, config)
 
-    os.mkdir(data_directory)
-
     print('\n >> Save numpy arrays to disk')
     # save them
-    np.save('%s/idx_q.npy' % data_directory, idx_q)
-    np.save('%s/idx_a.npy' % data_directory, idx_a)
+    storage.write(np.ndarray.dumps(idx_q), '%s/idx_q.npy' % data_directory, content_type='text/plain')
+    storage.write(np.ndarray.dumps(idx_a), '%s/idx_a.npy' % data_directory, content_type='text/plain')
 
     # let us now save the necessary dictionaries
     metadata = {
@@ -278,17 +279,13 @@ def process_data(config, base_path, data_directory):
     }
 
     # write to disk : data control dictionaries
-    file_path = '%s/metadata.pkl' % data_directory
-    with open(file_path, 'wb') as f:
-        pickle.dump(metadata, f)
+    storage.write(pickle.dumps(metadata), '%s/metadata.pkl' % data_directory, content_type='text/plain')
 
     # save answer metatokens
-    with open("%s/climate_augmented_metatokens.json" % data_directory, "w") as f:
-      json.dump(answer_metatokens, f, indent=2, sort_keys=True)
+    storage.write(json.dumps(answer_metatokens, indent=2, sort_keys=True), "%s/climate_augmented_metatokens.json" % data_directory)
 
     # save answer metatokens
-    with open("%s/config.json" % data_directory, "w") as f:
-      json.dump(config, f, indent=2, sort_keys=True)
+    storage.write(json.dumps(config, indent=2, sort_keys=True), "%s/config.json" % data_directory)
 
     # count of unknowns
     unk_count = (idx_q == 1).sum() + (idx_a == 1).sum()
@@ -350,25 +347,8 @@ def split_dataset(x, y, ratio = split_ratios):
 def decode(sequence, lookup, separator=''): # 0 used for padding, is ignored
     return separator.join([ lookup[element] for element in sequence if element ])
 
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--base_path',
-        help='Base path',
-        default=os.getcwd()
-    )
-    args = parser.parse_args()
-    arguments = args.__dict__
-
-    base_path = arguments['base_path']
-    data_directory = datetime.now().strftime('%Y_%m_%d_%H.%M')
-    data_config = json.load(open('%s/data_config.json'))
-    process_data(data_config, base_path, data_directory)
-    print('Data written to: %s' % data_directory)
-
 def length(data_directory, mode):
-    idx_q = np.load('%s/idx_q.npy' % data_directory)
+    idx_q = np.loads(storage.get('%s/idx_q.npy' % data_directory))
     if mode == ModeKeys.TRAIN:
         return len(idx_q) * split_ratios[0]
     elif mode == ModeKeys.EVAL:
@@ -378,12 +358,16 @@ def length(data_directory, mode):
 
 def load_data(data_directory):
     # read data control dictionaries
-    file_path = "%s/metadata.pkl" % data_directory
-    with open(file_path, 'rb') as f:
-        metadata = pickle.load(f)
+    metadata = pickle.loads(
+        storage.get("%s/metadata.pkl" % data_directory)
+    )
     # read numpy arrays
-    idx_q = np.load('%s/idx_q.npy' % data_directory)
-    idx_a = np.load('%s/idx_a.npy' % data_directory)
+    idx_q = np.loads(
+        storage.get('%s/idx_q.npy' % data_directory)
+    )
+    idx_a = np.loads(
+        storage.get('%s/idx_a.npy' % data_directory)
+    )
 
     (trainX, trainY), (testX, testY), (validX, validY) = split_dataset(idx_q, idx_a)
     trainX = trainX.tolist()
@@ -446,3 +430,4 @@ def preprocess_data(metadata, X, Y, hypes, mode):
     }
 
     return features, labels
+

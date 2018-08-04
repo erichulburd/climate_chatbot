@@ -4,6 +4,7 @@ from setuptools import setup
 REQUIRED_PACKAGES = [
   'tensorlayer==1.9',
   'tensorflow==1.9',
+  'google-cloud-storage',
   'nltk',
   'numpy'
 ]

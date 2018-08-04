@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # w207-final-project-211617
-PROJECT_NAME=$1
-BUCKET="${PROJECT_NAME}-ml"
-JOB_NAME="job_$(date +%Y%m%d_%H%M%S)"
+source .env
+JOB_NAME="$(date +%Y_%m_%d_%H.%M)"
 gcloud ml-engine jobs submit training ${JOB_NAME} \
     --package-path trainer \
     --module-name trainer.train \
@@ -12,5 +11,6 @@ gcloud ml-engine jobs submit training ${JOB_NAME} \
     --config gcloud_config.yaml \
     --python-version 3.5 \
     -- \
-    --base_path gs://${BUCKET} \
-    --working_directory ${JOB_NAME}
+    --working_directory ${JOB_NAME} \
+    --bucket_name ${BUCKET} \
+    --hypes_path $2
