@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
 # w207-final-project-211617
 source .env
-JOB_NAME="$(date +%Y_%m_%d_%H.%M)"
+JOB_NAME="job_$(date +%Y_%m_%d__%H_%M)"
 gcloud ml-engine jobs submit training ${JOB_NAME} \
     --package-path trainer \
     --module-name trainer.train \
     --staging-bucket gs://${BUCKET} \
-    --job-dir gs://${BUCKET}/working_dir/runs/${JOB_NAME} \
     --region us-central1 \
     --config gcloud_config.yaml \
     --python-version 3.5 \
     -- \
     --working_directory ${JOB_NAME} \
-    --bucket_name ${BUCKET} \
-    --hypes_path $2
+    --bucket_name ${BUCKET}

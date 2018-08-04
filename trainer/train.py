@@ -34,7 +34,7 @@ def serving_exporter():
 
 def execute(hypes, output_dir):
   data_directory = 'working_dir/data/%s' % (hypes['data_directory'])
-  hypes['data'] = json.loads(storage.get('%s/config.json' % data_directory))
+  hypes['data'] = json.loads(storage.get('%s/config.json' % data_directory).decode('utf-8'))
 
   # save answer metatokens
   storage.write(json.dumps(hypes, indent=2, sort_keys=True), "%s/hypes.json" % output_dir)
@@ -82,7 +82,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--hypes_path',
         help='Path to hypes on GCS for this job run.',
-        required=True
+        default=''
     )
     parser.add_argument(
         '--bucket_name',
@@ -99,7 +99,7 @@ if __name__ == '__main__':
 
     storage.set_bucket(arguments['bucket_name'])
 
-    hypes = json.loads(storage.get('%s/hypes.json' % arguments['hypes_path']))
+    hypes = json.loads(storage.get('%s/hypes.json' % arguments['hypes_path']).decode('utf-8'))
 
     output_dir = 'working_dir/runs/%s' % (arguments['working_directory'])
     execute(hypes, output_dir)

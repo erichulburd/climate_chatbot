@@ -8,5 +8,5 @@ import os
 if __name__ == '__main__':
   storage.set_bucket(os.getenv('BUCKET'))
   hypes = json.load(open('hypes.json'))
-  output_dir = 'working_dir/runs/%s' % (datetime.now().strftime('%Y_%m_%d_%H.%M'))
+  output_dir = 'working_dir/runs/%s' % (datetime.now().strftime('job_%Y_%m_%d__%H_%M'))
   train.execute(hypes, output_dir)
