@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import tensorlayer as tl
 import tensorflow as tf
+from trainer import log
 from tensorflow.contrib.learn.python.learn.estimators.model_fn import ModeKeys
 from tensorlayer.layers import EmbeddingInputlayer, Seq2Seq, DenseLayer, retrieve_seq_length_op2
 
@@ -74,14 +75,19 @@ def _generate_cnn_model_fn(hypes):
       name='cost'
     )
 
+    minimize = loss
     perplexity = tf.exp(loss)
+
+    if hypes['minimize'] == 'perplexity':
+      minimize = perplexity
+
     if mode == ModeKeys.TRAIN:
-      train_op = tf.train.AdamOptimizer(learning_rate=hypes['lr']).minimize(perplexity, global_step=tf.train.get_global_step())
-      return tf.estimator.EstimatorSpec(mode, loss=perplexity, train_op=train_op)
+      train_op = tf.train.AdamOptimizer(learning_rate=hypes['lr']).minimize(minimize, global_step=tf.train.get_global_step())
+      return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
     elif mode == ModeKeys.EVAL:
       eval_metric_ops = {}
-      return tf.estimator.EstimatorSpec(mode, loss=perplexity, eval_metric_ops=eval_metric_ops)
+      return tf.estimator.EstimatorSpec(mode, loss=loss, eval_metric_ops=eval_metric_ops)
 
     elif mode == ModeKeys.INFER:
       pass

@@ -23,7 +23,6 @@ def early_stop_hook(estimator, hypes):
     min_steps=hypes['early_stopping']['min_steps']
   )
 """
-
 def serving_exporter():
     # TODO
     return saved_model_export_utils.make_export_strategy(
@@ -35,6 +34,8 @@ def serving_exporter():
 def execute(hypes, output_dir):
   data_directory = 'working_dir/data/%s' % (hypes['data_directory'])
   hypes['data'] = json.loads(storage.get('%s/config.json' % data_directory).decode('utf-8'))
+
+
 
   # save answer metatokens
   storage.write(json.dumps(hypes, indent=2, sort_keys=True), "%s/hypes.json" % output_dir)

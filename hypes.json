@@ -15,6 +15,7 @@
   "eval_steps": 100,
   "epochs": 50,
   "dropout": 0.4,
+  "minimize": "loss",
   "seq2seq": {
     "n_layer": 3,
     "n_hidden": 256
