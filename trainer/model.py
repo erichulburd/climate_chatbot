@@ -29,22 +29,12 @@ def get_input_fn(hypes, mode):
   dataset_length = len(X)
   return lambda: dataset.shuffle(dataset_length).repeat().batch(batch_size).make_one_shot_iterator().get_next()
 
-NET_OUT_FILENAME = 'net_out.npy'
-NET_RNN_FILENAME = 'net_rnn.npy'
-
 def save_variables(sess, layer, path):
     values = sess.run(layer.all_params)
     storage.write(
       np.ndarray.dumps(np.array(values)),
       path
     )
-
-def load_and_assign_variables(sess, layer, path):
-    values = np.loads(
-      storage.get(path)
-    )
-    tl.files.assign_params(sess, values, layer)
-
 
 ###============= model
 def _model(encode_seqs, decode_seqs, hypes, mode):
@@ -94,22 +84,15 @@ def initialize_inference_model(hypes):
     'y': y
   }
 
-def infer(session, inputs, hypes, metadata, inference_model, load_from_storage=False):
-  net_out = inference_model['net_out']
-  net_rnn = inference_model['net_rnn']
-
-  if load_from_storage:
-    load_and_assign_variables(session, net_out, 'working_dir/runs/%s/%s' % (hypes['data_directory'], NET_OUT_FILENAME))
-    load_and_assign_variables(session, net_rnn, 'working_dir/runs/%s/%s' % (hypes['data_directory'], NET_RNN_FILENAME))
-
+def infer(session, inputs, hypes, metadata, inference_model, top=5):
   responses = []
   for inpt in inputs:
     responses.append(
-      _infer_input(session, inference_model, inpt, metadata)
+      _infer_input(session, inference_model, inpt, metadata, top=top)
     )
   return responses
 
-def _infer_input(sess, inference_model, inpt, metadata, top=5):
+def _infer_input(sess, inference_model, inpt, metadata, top):
   net_rnn = inference_model['net_rnn']
   encode_seqs_placeholder = inference_model['encode_seqs_placeholder']
   decode_seqs_placeholder = inference_model['decode_seqs_placeholder']
@@ -123,6 +106,8 @@ def _infer_input(sess, inference_model, inpt, metadata, top=5):
   idx2w = idx2w + ['start_id', 'end_id']
 
   seed_id = [(w2idx[w] if w in w2idx else w2idx['unk']) for w in inpt.split(" ")]
+  print('> %s' % inpt)
+  print(' (%s) ' % seed_id)
   candidates = []
   for _ in range(top):  # 1 Query --> 5 Reply
       # 1. encode, get state
@@ -189,8 +174,8 @@ def _generate_cnn_model_fn(hypes, metadata, job_directory):
         eval_metric_ops=eval_metric_ops,
         evaluation_hooks=[
           # tf.train.LoggingTensorHook({ 'perplexity': perplexity }),
-          SaveVariablesHook(net_out, '%s/%s' % (job_directory, NET_OUT_FILENAME)),
-          SaveVariablesHook(net_rnn, '%s/%s' % (job_directory, NET_RNN_FILENAME)),
+          SaveVariablesHook(net_out, '%s/%s' % (job_directory, data.NET_OUT_FILENAME)),
+          SaveVariablesHook(net_rnn, '%s/%s' % (job_directory, data.NET_RNN_FILENAME)),
           ExampleSeedsEval(hypes, metadata, inference_model),
           EarlyStopHook(hypes, loss)
         ]

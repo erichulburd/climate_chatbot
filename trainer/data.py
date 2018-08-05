@@ -20,6 +20,9 @@ import pickle
 import csv
 import string
 
+NET_OUT_FILENAME = 'net_out.npy'
+NET_RNN_FILENAME = 'net_rnn.npy'
+
 def get_climate_change_questions_and_answers(config):
     questions = []
     answer_tokens = []
@@ -339,7 +342,7 @@ def load_metadata(hypes):
 
 def load_hypes(job_directory):
     return json.loads(
-        storage.get("%s/hypes.json'" % job_directory).decode('utf-8')
+        storage.get("%s/hypes.json" % job_directory).decode('utf-8')
     )
 
 def load_data(hypes):
