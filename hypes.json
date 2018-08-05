@@ -1,18 +1,17 @@
 {
-  "data_directory": "2018_08_04_11.33",
+  "data_directory": "2018_08_05_10.14",
   "early_stopping": {
-    "max_steps_without_decrease": 1000,
-    "metric_name": "perplexity",
-    "min_steps": 100
+    "max_eval_steps_without_decrease": 5,
+    "min_eval_steps": 5
   },
   "eval_delay_secs": 10,
-  "min_eval_frequency": 100,
+  "min_eval_frequency": 320,
   "eval_throttle_seconds": 600,
   "lr": 0.0001,
   "emb_dim": 1024,
   "batch_size": 32,
   "eval_batch_size": 32,
-  "eval_steps": 100,
+  "eval_steps": 10,
   "epochs": 50,
   "dropout": 0.4,
   "minimize": "loss",

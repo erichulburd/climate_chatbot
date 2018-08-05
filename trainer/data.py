@@ -275,16 +275,12 @@ def process_data(config, data_directory):
         'w2idx' : w2idx,
         'idx2w' : idx2w,
         'config' : config,
-        'freq_dist' : freq_dist
+        'freq_dist' : freq_dist,
+        'climate_metatokens' : answer_metatokens
     }
 
     # write to disk : data control dictionaries
     storage.write(pickle.dumps(metadata), '%s/metadata.pkl' % data_directory, content_type='text/plain')
-
-    # save answer metatokens
-    storage.write(json.dumps(answer_metatokens, indent=2, sort_keys=True), "%s/climate_augmented_metatokens.json" % data_directory)
-
-    # save answer metatokens
     storage.write(json.dumps(config, indent=2, sort_keys=True), "%s/config.json" % data_directory)
 
     # count of unknowns
@@ -294,10 +290,6 @@ def process_data(config, data_directory):
 
     print('% unknown : {0}'.format(100 * (float(unk_count)/float(word_count))))
     print('Dataset count : ' + str(idx_q.shape[0]))
-
-
-    #print '>> gathered questions and answers.\n'
-    #prepare_seq2seq_files(questions,answers)
 
 
 import numpy as np
@@ -322,23 +314,6 @@ def split_dataset(x, y, ratio = split_ratios):
 
     return (trainX,trainY), (testX,testY), (validX,validY)
 
-#'''
-# convert indices of alphabets into a string (word)
-#    return str(word)
-#
-#'''
-#def decode_word(alpha_seq, idx2alpha):
-#    return ''.join([ idx2alpha[alpha] for alpha in alpha_seq if alpha ])
-#
-#
-#'''
-# convert indices of phonemes into list of phonemes (as string)
-#    return str(phoneme_list)
-#
-#'''
-#def decode_phonemes(pho_seq, idx2pho):
-#    return ' '.join( [ idx2pho[pho] for pho in pho_seq if pho ])
-
 
 '''
  a generic decode function
@@ -356,11 +331,22 @@ def length(data_directory, mode):
     elif mode == ModeKeys.INFER:
         return len(idx_q) * split_ratios[1]
 
-def load_data(data_directory):
-    # read data control dictionaries
-    metadata = pickle.loads(
+def load_metadata(hypes):
+    data_directory = 'working_dir/data/%s' % hypes['data_directory']
+    return pickle.loads(
         storage.get("%s/metadata.pkl" % data_directory)
     )
+
+def load_hypes(job_directory):
+    return json.loads(
+        storage.get("%s/hypes.json'" % job_directory).decode('utf-8')
+    )
+
+def load_data(hypes):
+    data_directory = 'working_dir/data/%s' % hypes['data_directory']
+
+    # read data control dictionaries
+    metadata = load_metadata(hypes)
     # read numpy arrays
     idx_q = np.loads(
         storage.get('%s/idx_q.npy' % data_directory)
@@ -386,6 +372,12 @@ def load_data(data_directory):
 
     return metadata, trainX, trainY, testX, testY, validX, validY
 
+def get_start_id(metadata):
+    return len(metadata['idx2w'])
+
+def get_end_id(metadata):
+    return len(metadata['idx2w']) + 1
+
 def preprocess_data(metadata, X, Y, hypes, mode):
     xseq_len = len(X)
     yseq_len = len(Y)
@@ -400,8 +392,8 @@ def preprocess_data(metadata, X, Y, hypes, mode):
     # unk_id = w2idx['unk']   # 1
     # pad_id = w2idx['_']     # 0
 
-    start_id = xvocab_size  # 8002
-    end_id = xvocab_size+1  # 8003
+    start_id = get_start_id(metadata)  # 8002
+    end_id = get_end_id(metadata)  # 8003
 
     w2idx.update({'start_id': start_id})
     w2idx.update({'end_id': end_id})

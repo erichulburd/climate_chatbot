@@ -6,6 +6,7 @@ from google.cloud import storage as gcs
 import json
 import os
 import sys
+import numpy as np
 
 bucket_name = None
 def set_bucket(name):

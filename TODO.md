@@ -1,6 +1,6 @@
 * [X] Visualize losses on tensorboard
 * Evaluation hooks:
-  * [ ] set up inference attempts
-  * [ ] early stopping
+  * [X] set up inference attempts
+  * [X] early stopping
 * [ ] implement continue training
-* [ ] Implement additional eval metric ops
+* [X] Implement additional logging
