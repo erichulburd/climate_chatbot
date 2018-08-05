@@ -120,6 +120,8 @@ def _infer_input(sess, inference_model, inpt, metadata, top=5):
   idx2w = metadata['idx2w']
   start_id = data.get_start_id(metadata)
   end_id = data.get_end_id(metadata)
+  w2idx.update({ 'start_id': start_id, 'end_id': end_id })
+  idx2w = idx2w + ['start_id', 'end_id']
 
   seed_id = [(w2idx[w] if w in w2idx else w2idx['unk']) for w in inpt.split(" ")]
   candidates = []
@@ -149,7 +151,7 @@ def _infer_input(sess, inference_model, inpt, metadata, top=5):
                 w = metadata['climate_metatokens'][w]
             sentence = sentence + [w]
           except IndexError:
-            print('IndexError for %s (out of bounds %i).' % (w_id, len(idx2w)))
+            print('IndexError for %i (out of bounds %i).' % (w_id, len(idx2w)))
             raise IndexError
       candidates.append(' '.join(sentence))
   return candidates
