@@ -53,8 +53,7 @@ def _model(encode_seqs, decode_seqs, hypes, mode):
 
   reuse = (mode != ModeKeys.TRAIN)
   with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
-      # for chatbot, you can use the same embedding layer,
-      # for translation, you may want to use 2 seperated embedding layers
+      # for chatbot, you can use the same embedding layer
       with tf.variable_scope("embedding") as vs:
         net_encode = EmbeddingInputlayer(
             inputs = encode_seqs,

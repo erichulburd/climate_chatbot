@@ -6,3 +6,4 @@ venv/
 .vscode/
 tmp/
 .env
+example.ipynb
