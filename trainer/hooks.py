@@ -3,6 +3,12 @@ import numpy as np
 
 from trainer import model
 
+def safe_print(s):
+  try:
+    print(s)
+  except BrokenPipeError:
+    pass
+
 class EarlyStopHook(tf.train.SessionRunHook):
   def __init__(self, hypes, loss_op):
     self.losses = []
@@ -11,12 +17,12 @@ class EarlyStopHook(tf.train.SessionRunHook):
     self.min_eval_steps = hypes['early_stopping']['min_eval_steps']
 
   def before_run(self, run_context):
-    print('EarlyStopHook#before_run')
+    safe_print('EarlyStopHook#before_run')
     return tf.train.SessionRunArgs({ 'loss': self.loss_op })
 
   def after_run(self, run_context, run_values):
-    print('EarlyStopHook#after_run')
-    print(run_values)
+    safe_print('EarlyStopHook#after_run')
+    safe_print(run_values)
     self.losses.append(run_values.results['loss'])
     if len(self.losses) <= self.min_eval_steps:
       return
@@ -32,10 +38,9 @@ class SaveVariablesHook(tf.train.SessionRunHook):
     self.path = path
 
   def after_run(self, run_context, run_values):
-    print('SaveVariablesHook#after_run')
-    print(self.path)
+    safe_print('SaveVariablesHook#after_run')
+    safe_print(self.path)
     model.save_variables(run_context.session, self.layer, self.path)
-
 
 default_seeds = [
     "How are you?",
@@ -51,9 +56,9 @@ class ExampleSeedsEval(tf.train.SessionRunHook):
     self.inference_model = inference_model
 
   def after_run(self, run_context, run_values):
-    print('ExampleSeedsEval#after_run')
+    safe_print('ExampleSeedsEval#after_run')
     responses = model.infer(run_context.session, self.seeds, self.hypes, self.metadata, self.inference_model)
     for index, seed in enumerate(self.seeds):
-      print('$ %s' % seed)
+      safe_print('$ %s' % seed)
       for j, response in enumerate(responses[index]):
-        print('  %i. %s' % (j + 1, response))
+        safe_print('  %i. %s' % (j + 1, response))
