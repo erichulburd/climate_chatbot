@@ -25,16 +25,3 @@
 
 * Run `bin/run_cloud $gc_project_name $path_to_hypes`.
 
-# References
-
-## Implementation
-
-This code base is essentially a combination of:
-
-* Tensorlayer's [seq2seq-chatbot](https://github.com/tensorlayer/seq2seq-chatbot)
-* Google Cloud's [Using Distributed TensorFlow with Cloud ML Engine and Cloud Datalab ](https://cloud.google.com/ml-engine/docs/tensorflow/distributed-tensorflow-mnist-cloud-datalab).
-
-Additionally, this code base:
-
-* includes training on climate science question and answers
-* configurable hyper parameters

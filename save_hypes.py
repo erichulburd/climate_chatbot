@@ -9,9 +9,9 @@ if __name__ == '__main__':
     parser.add_argument(
         '--path',
         help='Base file path',
-        default=''
+        default='/hypes.json'
     )
     args = parser.parse_args()
     arguments = args.__dict__
     hypes = json.load(open('hypes.json'))
-    storage.write(json.dumps(hypes), '%s/hypes.json' % arguments['path'], content_type='application/json')
+    storage.write(json.dumps(hypes), arguments['path'], content_type='application/json')

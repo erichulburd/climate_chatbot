@@ -57,7 +57,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--hypes_path',
         help='Path to hypes on GCS for this job run.',
-        default=''
+        default='/hypes.json'
     )
     parser.add_argument(
         '--bucket_name',
@@ -74,7 +74,7 @@ if __name__ == '__main__':
 
     storage.set_bucket(arguments['bucket_name'])
 
-    hypes = json.loads(storage.get('%s/hypes.json' % arguments['hypes_path']).decode('utf-8'))
+    hypes = json.loads(storage.get(arguments['hypes_path']).decode('utf-8'))
 
     job_directory = 'working_dir/runs/%s' % (arguments['job_directory'])
     metadata = data.load_metadata(hypes)

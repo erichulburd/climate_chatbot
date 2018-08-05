@@ -174,7 +174,11 @@ def _generate_cnn_model_fn(hypes, metadata, job_directory):
       minimize = perplexity
 
     if mode == ModeKeys.TRAIN:
-      train_op = tf.train.AdamOptimizer(learning_rate=hypes['lr']).minimize(minimize, global_step=tf.train.get_global_step())
+      train_op = None
+      if hypes['optimizer'] == 'GradientDescent':
+        train_op = tf.train.GradientDescentOptimizer(hypes['lr']).minimize(minimize, global_step=tf.train.get_global_step())
+      else:
+        train_op = tf.train.AdamOptimizer(learning_rate=hypes['lr']).minimize(minimize, global_step=tf.train.get_global_step())
       return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
     elif mode == ModeKeys.EVAL:
