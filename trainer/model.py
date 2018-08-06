@@ -37,9 +37,9 @@ def save_variables(sess, layer, path):
     )
 
 ###============= model
-def _model(encode_seqs, decode_seqs, hypes, mode):
+def _model(encode_seqs, decode_seqs, hypes, metadata, mode):
   # We add two here for start, end ids as well as unknown and pad.
-  xvocab_size = hypes['data']['vocab_size'] + 4
+  xvocab_size = len(metadata['idxw2']) + 2
 
   reuse = (mode != ModeKeys.TRAIN)
   with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
@@ -72,10 +72,10 @@ def _model(encode_seqs, decode_seqs, hypes, mode):
       net_out = DenseLayer(net_rnn, n_units=xvocab_size, act=tf.identity, name='output')
   return net_out, net_rnn
 
-def initialize_inference_model(hypes):
+def initialize_inference_model(hypes, metadata):
   encode_seqs_placeholder = tf.placeholder(dtype=tf.int64, shape=[1, None], name="encode_seqs")
   decode_seqs_placeholder = tf.placeholder(dtype=tf.int64, shape=[1, None], name="decode_seqs")
-  net_out, net_rnn = _model(encode_seqs_placeholder, decode_seqs_placeholder, hypes, ModeKeys.EVAL)
+  net_out, net_rnn = _model(encode_seqs_placeholder, decode_seqs_placeholder, hypes, metadata, ModeKeys.EVAL)
   y = tf.nn.softmax(net_out.outputs)
   return {
     'net_out': net_out,
@@ -103,6 +103,7 @@ def _infer_input(sess, inference_model, inpt, metadata, top):
   idx2w = metadata['idx2w']
   start_id = data.get_start_id(metadata)
   end_id = data.get_end_id(metadata)
+  print('end_id is %i' % end_id)
   w2idx.update({ 'start_id': start_id, 'end_id': end_id })
   idx2w = idx2w + ['start_id', 'end_id']
 
@@ -118,7 +119,10 @@ def _infer_input(sess, inference_model, inpt, metadata, top):
                       {net_rnn.initial_state_decode: state,
                       decode_seqs_placeholder: [[start_id]]})
       w_id = tl.nlp.sample_top(o[0], top_k=3)
-      w = idx2w[w_id]
+      try:
+        w = idx2w[w_id]
+      except:
+        print('IndexError %i' % w_id)
       # 3. decode, feed state iteratively
       sentence = [w]
       for _ in range(30): # max sentence length
@@ -141,7 +145,7 @@ def _infer_input(sess, inference_model, inpt, metadata, top):
 
 def _generate_cnn_model_fn(hypes, metadata, job_directory):
   def _cnn_model_fn(features, labels, mode):
-    net_out, net_rnn = _model(features['encode_seqs'], features['decode_seqs'], hypes, mode)
+    net_out, net_rnn = _model(features['encode_seqs'], features['decode_seqs'], hypes, metadata, mode)
 
     loss = tl.cost.cross_entropy_seq_with_mask(
       logits=net_out.outputs,

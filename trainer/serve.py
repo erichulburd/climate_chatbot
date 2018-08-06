@@ -27,7 +27,7 @@ class ModelServer:
 
         sess = tf.Session()
         self.sess = sess
-        inference_model = model.initialize_inference_model(hypes)
+        inference_model = model.initialize_inference_model(hypes, metadata)
         self.inference_model = inference_model
         tl.files.assign_params(sess, net_out_values, inference_model['net_out'])
         tl.files.assign_params(sess, net_rnn_values, inference_model['net_rnn'])
