@@ -1,21 +1,26 @@
 {
-  "data_directory": "2018_08_05_10.14",
+  "data_directory": "2018_08_06_00.46",
   "early_stopping": {
     "max_eval_steps_without_decrease": 5,
     "min_eval_steps": 5
   },
   "eval_delay_secs": 10,
-  "min_eval_frequency": 320,
+  "min_eval_frequency": 1000,
   "eval_throttle_seconds": 600,
   "max_grad_norm": 30,
-  "optimizer": "Adam",
-  "lr": 0.5,
+  "cell_fn": "LSTM",
+  "optimizer": "GradientDescent",
+  "lr": 0.00001,
+  "lr_decay": {
+	  "steps": 1000,
+	  "rate": 0.96
+  },
   "emb_dim": 1024,
   "batch_size": 32,
   "eval_batch_size": 32,
   "eval_steps": 10,
   "epochs": 50,
-  "dropout": 0.2,
+  "dropout": 0,
   "minimize": "loss",
   "seq2seq": {
     "n_layer": 3,
