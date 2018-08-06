@@ -175,7 +175,7 @@ def _generate_cnn_model_fn(hypes, metadata, job_directory):
         return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
     elif mode == ModeKeys.EVAL:
-      inference_model = initialize_inference_model(hypes)
+      # inference_model = initialize_inference_model(hypes)
       eval_metric_ops = {}
       return tf.estimator.EstimatorSpec(mode,
         loss=loss,

@@ -253,8 +253,8 @@ def process_data(config, data_directory):
         print('q : {0}; a : {1}'.format(q,a))
 
     climate_qtokenized, climate_atokenized, answer_metatokens = get_climate_change_questions_and_answers(config)
-    qtokenized += climate_qtokenized
-    atokenized += climate_atokenized
+    qtokenized = climate_qtokenized
+    atokenized = climate_atokenized
 
     # indexing -> idx2w, w2idx
     print('\n >> Index words')
@@ -301,11 +301,11 @@ from random import sample
 import os
 
 '''
- split data into train (70%), test (15%) and valid(15%)
+ split data into train (90%), test (0%) and valid(10%)
     return tuple( (trainX, trainY), (testX,testY), (validX,validY) )
 
 '''
-split_ratios = [0.7, 0.15, 0.15]
+split_ratios = [0.9, 0, 0.1]
 def split_dataset(x, y, ratio = split_ratios):
     # number of examples
     data_len = len(x)
