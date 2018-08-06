@@ -85,7 +85,7 @@ def initialize_inference_model(hypes):
     'y': y
   }
 
-def infer(session, inputs, hypes, metadata, inference_model, top=5):
+def infer(session, inputs, hypes, metadata, inference_model, top):
   responses = []
   for inpt in inputs:
     responses.append(
