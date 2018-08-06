@@ -57,8 +57,9 @@ def _model(encode_seqs, decode_seqs, hypes, mode):
             vocabulary_size = xvocab_size,
             embedding_size = hypes['emb_dim'],
             name = 'seq_embedding')
+      cell_fn = tf.contrib.rnn.GRUCell if hypes['cell_fn'] == 'GRU' else tf.contrib.rnn.BasicLSTMCell
       net_rnn = Seq2Seq(net_encode, net_decode,
-            cell_fn = tf.contrib.rnn.BasicLSTMCell,
+            cell_fn = cell_fn,
             n_hidden = hypes['emb_dim'],
             initializer = tf.random_uniform_initializer(-0.1, 0.1),
             encode_sequence_length = retrieve_seq_length_op2(encode_seqs),

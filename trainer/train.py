@@ -74,7 +74,10 @@ if __name__ == '__main__':
 
     storage.set_bucket(arguments['bucket_name'])
 
-    hypes = json.loads(storage.get(arguments['hypes_path']).decode('utf-8'))
+    hypes = {
+        'cell_fn': 'LSTM'
+    }
+    hypes.update(json.loads(storage.get(arguments['hypes_path']).decode('utf-8')))
 
     job_directory = 'working_dir/runs/%s' % (arguments['job_directory'])
     metadata = data.load_metadata(hypes)

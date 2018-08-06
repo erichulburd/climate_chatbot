@@ -9,17 +9,17 @@ storage.set_bucket(os.getenv('BUCKET'))
 
 class ModelServer:
 
-    def __init__(self):
-        hypes = data.load_hypes('working_dir/runs/%s' % os.getenv('JOB_DIRECTORY'))
+    def __init__(self, job_id):
+        hypes = data.load_hypes('working_dir/runs/%s' % job_id)
         self.hypes = hypes
         metadata = data.load_metadata(hypes)
         self.metadata = metadata
 
         net_out_values = np.loads(
-            storage.get('working_dir/runs/%s/%s' % (os.getenv('JOB_DIRECTORY'), data.NET_OUT_FILENAME))
+            storage.get('working_dir/runs/%s/%s' % (job_id, data.NET_OUT_FILENAME))
         )
         net_rnn_values = np.loads(
-            storage.get('working_dir/runs/%s/%s' % (os.getenv('JOB_DIRECTORY'), data.NET_RNN_FILENAME))
+            storage.get('working_dir/runs/%s/%s' % (job_id, data.NET_RNN_FILENAME))
         )
 
         sess = tf.Session()
