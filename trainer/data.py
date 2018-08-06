@@ -151,12 +151,16 @@ def index_(tokenized_sentences, vocab_size, keep=[]):
   filter out the worst sentences
 
 '''
-def filter_by_unk_ratio(qtokenized, atokenized, w2idx, config):
+def filter_by_unk_ratio(qtokenized, atokenized, w2idx, config, keep_answers={}):
     data_len = len(qtokenized)
 
     filtered_q, filtered_a = [], []
 
     for qline, aline in zip(qtokenized, atokenized):
+        if aline[0] in keep_answers:
+            filtered_q.append(qline)
+            filtered_a.append(aline)
+            continue
         unk_count_q = sum([ 1 for w in qline if w not in w2idx ])
         unk_count_a = sum([ 1 for w in aline if w not in w2idx ])
         q_ok = (float(unk_count_q)/float(len(qline))) <= config['permissible_unk_ratio']
@@ -262,8 +266,11 @@ def process_data(config, data_directory):
 
     # filter out sentences with too many unknowns
     print('\n >> Filter Unknowns')
-    qtokenized, atokenized = filter_by_unk_ratio(qtokenized, atokenized, w2idx, config)
+    qtokenized, atokenized = filter_by_unk_ratio(qtokenized, atokenized, w2idx, config, keep_answers=answer_metatokens)
     print('\n Final dataset len : ' + str(len(qtokenized)))
+
+    print(atokenized[-100:])
+    print('\n Climate FAQ count: %i' % sum([1 if (a[0] in answer_metatokens) else 0 for a in atokenized]))
 
     print('\n >> Vectorizing inputs')
     idx_q, idx_a = vectorize_question_and_answers(qtokenized, atokenized, w2idx, config)
