@@ -10,5 +10,6 @@ gcloud ml-engine jobs submit training ${JOB_NAME} \
     --config gcloud_config.yaml \
     --python-version 3.5 \
     -- \
-    --working_directory ${JOB_NAME} \
-    --bucket_name ${BUCKET}
+    --job_directory ${JOB_NAME} \
+    --bucket_name ${BUCKET} \
+    --hypes_path $1
