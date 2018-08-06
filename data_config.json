@@ -6,5 +6,6 @@
       "mina": 2
   },
   "vocab_size": 8000,
-  "permissible_unk_ratio": 0.2
+  "permissible_unk_ratio": 0.2,
+  "climate_multiplier": 5
 }

@@ -43,7 +43,9 @@ def get_climate_change_questions_and_answers(config):
             answer_tokens.append([output_metatoken])
     # This also truncates climate questions that are beyond config limit.
     questions = [q[:config['limit']['maxq']] for q in process_raw_lines(questions)]
-    return questions, answer_tokens, answer_metatokens
+    multiplier = 1 if 'climate_multiplier' not in config else config['climate_multiplier']
+    print("Climate multiplier %i" % multiplier)
+    return questions * multiplier, answer_tokens * multiplier, answer_metatokens
 
 '''
     1. Read from 'movie-lines.txt'
@@ -269,7 +271,6 @@ def process_data(config, data_directory):
     qtokenized, atokenized = filter_by_unk_ratio(qtokenized, atokenized, w2idx, config, keep_answers=answer_metatokens)
     print('\n Final dataset len : ' + str(len(qtokenized)))
 
-    print(atokenized[-100:])
     print('\n Climate FAQ count: %i' % sum([1 if (a[0] in answer_metatokens) else 0 for a in atokenized]))
 
     print('\n >> Vectorizing inputs')
