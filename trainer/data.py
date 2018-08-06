@@ -404,24 +404,31 @@ def preprocess_data(metadata, X, Y, hypes, mode):
 
     xvocab_size = end_id + 1
 
+    X = tl.prepro.pad_sequences(X)
+    target_seqs = tl.prepro.sequences_add_end_id(Y, end_id=end_id)
+    target_seqs = tl.prepro.pad_sequences(target_seqs)
+
+    decode_seqs = tl.prepro.sequences_add_start_id(Y, start_id=start_id, remove_last=False)
+    decode_seqs = tl.prepro.pad_sequences(decode_seqs)
+    target_mask = tl.prepro.sequences_get_mask(target_seqs)
+
+    # for i in range(100):
+    #    print(i, [idx2w[id] for id in X[i]])
+    #    print(i, [idx2w[id] for id in Y[i]])
+    #    print(i, [idx2w[id] for id in target_seqs[i]])
+    #    print(i, [idx2w[id] for id in decode_seqs[i]])
+    #    print(i, target_mask[i])
+    #    print(len(target_seqs[i]), len(decode_seqs[i]), len(target_mask[i]))
+    # exit()
+
     features = {
-        'encode_seqs': tf.stack(
-            tl.prepro.pad_sequences(X)
-        ),
-        'decode_seqs': tf.stack(
-            tl.prepro.pad_sequences(
-                tl.prepro.sequences_add_start_id(Y, start_id=start_id, remove_last=False)
-            )
-        )
+        'encode_seqs': tf.stack(X),
+        'decode_seqs': tf.stack(decode_seqs)
     }
-    target_seqs = tl.prepro.pad_sequences(
-        tl.prepro.sequences_add_end_id(Y, end_id=end_id)
-    )
+
     labels = {
         'target_seqs': tf.stack(target_seqs),
-        'target_mask': tf.stack(
-            tl.prepro.sequences_get_mask(target_seqs)
-        )
+        'target_mask': tf.stack(target_mask)
     }
 
     return features, labels
