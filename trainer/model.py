@@ -39,7 +39,7 @@ def save_variables(sess, layer, path):
 ###============= model
 def _model(encode_seqs, decode_seqs, hypes, metadata, mode):
   # We add two here for start, end ids as well as unknown and pad.
-  xvocab_size = len(metadata['idxw2']) + 2
+  xvocab_size = len(metadata['idx2w']) + 2
 
   reuse = (mode != ModeKeys.TRAIN)
   with tf.variable_scope("model", reuse=tf.AUTO_REUSE):
