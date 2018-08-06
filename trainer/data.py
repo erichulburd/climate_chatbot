@@ -253,8 +253,8 @@ def process_data(config, data_directory):
         print('q : {0}; a : {1}'.format(q,a))
 
     climate_qtokenized, climate_atokenized, answer_metatokens = get_climate_change_questions_and_answers(config)
-    qtokenized = climate_qtokenized
-    atokenized = climate_atokenized
+    qtokenized += climate_qtokenized
+    atokenized += climate_atokenized
 
     # indexing -> idx2w, w2idx
     print('\n >> Index words')

@@ -32,7 +32,7 @@ class ModelServer:
         tl.files.assign_params(sess, net_out_values, inference_model['net_out'])
         tl.files.assign_params(sess, net_rnn_values, inference_model['net_rnn'])
 
-    def respond(self, inpt, top=5):
+    def respond(self, inpt, top=1):
         return model.infer(self.sess, [inpt], self.hypes, self.metadata, self.inference_model, top)
 
     def close(self):

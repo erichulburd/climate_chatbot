@@ -103,7 +103,6 @@ def _infer_input(sess, inference_model, inpt, metadata, top):
   idx2w = metadata['idx2w']
   start_id = data.get_start_id(metadata)
   end_id = data.get_end_id(metadata)
-  print('end_id is %i' % end_id)
   w2idx.update({ 'start_id': start_id, 'end_id': end_id })
   idx2w = idx2w + ['start_id', 'end_id']
 
@@ -125,6 +124,8 @@ def _infer_input(sess, inference_model, inpt, metadata, top):
         print('IndexError %i' % w_id)
       # 3. decode, feed state iteratively
       sentence = [w]
+      if w in metadata['climate_metatokens']:
+          sentence = [metadata['climate_metatokens'][w]]
       for _ in range(30): # max sentence length
           o, state = sess.run([y, net_rnn.final_state_decode],
                           {net_rnn.initial_state_decode: state,
@@ -134,9 +135,12 @@ def _infer_input(sess, inference_model, inpt, metadata, top):
             break
           try:
             w = idx2w[w_id]
+            if w == '_':
+              continue
             if w in metadata['climate_metatokens']:
-                w = metadata['climate_metatokens'][w]
-            sentence = sentence + [w]
+                sentence = sentence + [metadata['climate_metatokens'][w]]
+            else:
+                sentence = sentence + [w]
           except IndexError:
             print('IndexError for %i (out of bounds %i).' % (w_id, len(idx2w)))
             raise IndexError
