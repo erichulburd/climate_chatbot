@@ -160,6 +160,10 @@ def _generate_cnn_model_fn(hypes, metadata, job_directory):
 
 
     if mode == ModeKeys.TRAIN:
+      learning_rate = hypes['lr']
+      if 'lr_decay' in hypes:
+        learning_rate = tf.train.exponential_decay(learning_rate, tf.train.get_global_step(),
+                                           hypes['lr_decay']['steps'], hypes['lr_decay']['rate'], staircase=True)
       if hypes['optimizer'] == 'GradientDescent':
         grads, _ = tf.clip_by_global_norm(tf.gradients(loss, net_out.all_params), hypes['max_grad_norm'])
         optimizer = tf.train.GradientDescentOptimizer(hypes['lr'])

@@ -10,7 +10,10 @@ storage.set_bucket(os.getenv('BUCKET'))
 class ModelServer:
 
     def __init__(self, job_id):
-        hypes = data.load_hypes('working_dir/runs/%s' % job_id)
+        hypes = {
+            'cell_fn': 'LSTM'
+        }
+        hypes.update(data.load_hypes('working_dir/runs/%s' % job_id))
         self.hypes = hypes
         metadata = data.load_metadata(hypes)
         self.metadata = metadata
