@@ -162,7 +162,7 @@ def _generate_cnn_model_fn(hypes, metadata, job_directory):
       if hypes['optimizer'] == 'GradientDescent':
         grads, _ = tf.clip_by_global_norm(tf.gradients(loss, net_out.all_params), hypes['max_grad_norm'])
         optimizer = tf.train.GradientDescentOptimizer(hypes['lr'])
-        train_op = optimizer.apply_gradients(zip(grads, net_out.all_params))
+        train_op = optimizer.apply_gradients(zip(grads, net_out.all_params), global_step=tf.train.get_global_step())
         # train_op = tf.train.GradientDescentOptimizer().minimize(minimize, global_step=tf.train.get_global_step())
         return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
       else:
