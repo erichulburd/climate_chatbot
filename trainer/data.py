@@ -15,7 +15,7 @@ from trainer import storage
 from io import StringIO
 import numpy as np
 from tensorflow import gfile
-from tensorflow.contrib.learn.python.learn.estimators.model_fn import ModeKeys
+from tensorflow.estimator import ModeKeys
 import pickle
 import csv
 import string
@@ -331,7 +331,7 @@ def length(data_directory, mode):
         return len(idx_q) * split_ratios[0]
     elif mode == ModeKeys.EVAL:
         return len(idx_q) * split_ratios[2]
-    elif mode == ModeKeys.INFER:
+    elif mode == ModeKeys.PREDICT:
         return len(idx_q) * split_ratios[1]
 
 def load_metadata(hypes):

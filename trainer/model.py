@@ -106,8 +106,6 @@ def _infer_input(sess, inference_model, inpt, metadata, top):
   idx2w = idx2w + ['start_id', 'end_id']
 
   seed_id = [(w2idx[w] if w in w2idx else w2idx['unk']) for w in inpt.split(" ")]
-  print('> %s' % inpt)
-  print(' (%s) ' % seed_id)
   candidates = []
   for _ in range(top):  # 1 Query --> 5 Reply
       # 1. encode, get state
@@ -154,9 +152,11 @@ def _generate_cnn_model_fn(hypes, metadata, job_directory):
 
     minimize = loss
     perplexity = tf.exp(loss)
+    tf.summary.scalar('perplexity', perplexity)
 
     if hypes['minimize'] == 'perplexity':
       minimize = perplexity
+
 
     if mode == ModeKeys.TRAIN:
       train_op = None
