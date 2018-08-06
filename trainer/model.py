@@ -184,7 +184,7 @@ def _generate_cnn_model_fn(hypes, metadata, job_directory):
           # tf.train.LoggingTensorHook({ 'perplexity': perplexity }),
           SaveVariablesHook(net_out, '%s/%s' % (job_directory, data.NET_OUT_FILENAME)),
           SaveVariablesHook(net_rnn, '%s/%s' % (job_directory, data.NET_RNN_FILENAME)),
-          ExampleSeedsEval(hypes, metadata, inference_model),
+          # ExampleSeedsEval(hypes, metadata, inference_model),
           EarlyStopHook(hypes, loss)
         ]
       )
