@@ -25,3 +25,7 @@
 
 * Run `bin/run_cloud $gc_project_name $path_to_hypes`.
 
+
+# Run Notes
+
+* `job_2018_08_05__20_54` demonstrated good first and second derivatives, but after 10k training steps, this was still above 8 loss.
