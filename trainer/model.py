@@ -159,12 +159,15 @@ def _generate_cnn_model_fn(hypes, metadata, job_directory):
 
 
     if mode == ModeKeys.TRAIN:
-      train_op = None
       if hypes['optimizer'] == 'GradientDescent':
-        train_op = tf.train.GradientDescentOptimizer(hypes['lr']).minimize(minimize, global_step=tf.train.get_global_step())
+        grads, _ = tf.clip_by_global_norm(tf.gradients(loss, net_out.all_params), hypes['max_grad_norm'])
+        optimizer = tf.train.GradientDescentOptimizer(hypes['lr'])
+        train_op = optimizer.apply_gradients(zip(grads, net_out.all_params))
+        # train_op = tf.train.GradientDescentOptimizer().minimize(minimize, global_step=tf.train.get_global_step())
+        return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
       else:
         train_op = tf.train.AdamOptimizer(learning_rate=hypes['lr']).minimize(minimize, global_step=tf.train.get_global_step())
-      return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
+        return tf.estimator.EstimatorSpec(mode, loss=loss, train_op=train_op)
 
     elif mode == ModeKeys.EVAL:
       inference_model = initialize_inference_model(hypes)
